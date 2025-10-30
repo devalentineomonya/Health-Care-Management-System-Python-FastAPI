@@ -1,40 +1,74 @@
+# ============================================
+# MERGED .gitignore for Healthcare System
+# ============================================
+
+# Client (from original)
 client/
+
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 *.egg-info/
+*.egg
+.installed.cfg
 *.log
 .pytest_cache/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+
+# Virtual Environments
 venv/
 env/
 .venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment Variables & Secrets (CRITICAL!)
 .env
+.env.local
+.env.*.local
+*.env
+*.key
+*.pem
+credentials.json
+secrets/
 
 # Docker
 docker-compose.override.yml
 docker-data/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Build/Test
-dist/
-build/
+# Testing
 .coverage
 htmlcov/
-
-# Database
-*.db
-*.sqlite3
-
-# Secrets
-*.key
-*.pem
-credentials.json
-secrets/
+coverage.xml
+.hypothesis/
 
 # Frontend (if added later)
 node_modules/
@@ -42,7 +76,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Misc
+# OS
 .DS_Store
+Thumbs.db
+
+# Misc
 *.bak
 *.tmp

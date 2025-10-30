@@ -1,65 +1,66 @@
 version: '3.8'
 
 services:
-  app:
-    build: .
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-      - redis
-      - rabbitmq
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/healthcare
-      - REDIS_URL=redis://redis:6379/0
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-for-development-only}
-    volumes:
-      - ./app:/app/app
-    restart: always
-
+  # PostgreSQL Database
   db:
-    image: postgres:15
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
+    image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=healthcare
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: healthcare_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: healthcare_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - healthcare-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthcare_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Redis Cache
   redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
+    image: redis:7-alpine
+    networks:
+      - healthcare-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # RabbitMQ (already in project)
   rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+    image: rabbitmq:3.12-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    networks:
+      - healthcare-network
 
-  notification-service:
+  # FastAPI Application
+  app:
     build:
       context: .
-      dockerfile: Dockerfile.notification
-    depends_on:
-      - rabbitmq
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
     environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
-      - SMTP_SERVER=${SMTP_SERVER:-smtp.example.com}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USERNAME=${SMTP_USERNAME:-user}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-password}
-      - EMAIL_FROM=${EMAIL_FROM:-noreply@example.com}
-    restart: always
+      DATABASE_URL: postgresql://healthcare_user:${DB_PASSWORD}@db:5432/healthcare_db
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - healthcare-network
 
 volumes:
   postgres_data:
-  redis_data:
-  rabbitmq_data:
+
+networks:
+  healthcare-network:
+    driver: bridge

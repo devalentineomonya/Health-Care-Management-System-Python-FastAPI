@@ -1,19 +1,34 @@
+# Stage 1: Build stage
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Stage 2: Runtime stage
 FROM python:3.11-slim
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+# Copy only installed packages
+COPY --from=builder /root/.local /root/.local
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Create non-root user FIRST
+RUN useradd -m -u 1000 appuser
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy installed packages to appuser's directory and set permissions
+RUN cp -r /root/.local /home/appuser/.local && \
+    chown -R appuser:appuser /home/appuser/.local
 
-COPY . .
+# Set PATH for appuser
+ENV PATH=/home/appuser/.local/bin:$PATH
 
-CMD ["uvicorn", "app.main:app","--reload" ,"--host", "0.0.0.0", "--port", "8000"]
+# Copy application code and set ownership
+COPY --chown=appuser:appuser ./app ./app
+
+# Switch to non-root user
+USER appuser
+
+EXPOSE 8000
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
