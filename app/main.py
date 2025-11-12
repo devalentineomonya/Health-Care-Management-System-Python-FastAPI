@@ -85,7 +85,7 @@ app.openapi = custom_openapi
 
 @app.get("/", tags=["Root"])
 async def root():
-    return {"message": "Welcome to the Healthcare Appointment System API"}
+    return {"message": "Welcome to the Healthcare Appointment System API /docs for docs"}
 
 @app.get("/health", tags=["Health"])
 async def health_check(db: Session = Depends(get_db)):

@@ -2,7 +2,6 @@ from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -11,22 +10,34 @@ from app.core.security import create_access_token
 from app.crud.crud_user import user
 from app.schemas.user import User, UserCreate, Token
 from app.db.session import get_db
+from pydantic import BaseModel, EmailStr
 
 router = APIRouter()
 
 
+class LoginRequest(BaseModel):
+    email: EmailStr = "demo@example.com"
+    password: str = "password123"
+
+    class Config:
+        schema_extra = {
+            "example": {"email": "user@example.com", "password": "supersecret"}
+        }
+
+
 @router.post("/login", response_model=Token, status_code=status.HTTP_200_OK)
 def login_access_token(
-    db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
+    login_data: LoginRequest,
+    db: Session = Depends(get_db)
 ) -> Any:
     """
-    OAuth2 compatible token login, get an access token for future requests.
+    Token login with JSON, get an access token for future requests.
 
-    - **username**: Email address
+    - **email**: Email address
     - **password**: User password
     """
     user_obj = user.authenticate(
-        db, email=form_data.username, password=form_data.password
+        db, email=login_data.email, password=login_data.password
     )
     if not user_obj:
         raise HTTPException(
@@ -70,10 +81,9 @@ def create_user(
 
 @router.get("/me", response_model=User)
 def read_users_me(
-
+    current_user: User = Depends(get_current_user)
 ) -> Any:
     """
     Get current user.
     """
-    current_user = Depends(get_current_user)
     return current_user

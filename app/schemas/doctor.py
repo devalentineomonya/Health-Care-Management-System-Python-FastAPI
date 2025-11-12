@@ -67,4 +67,3 @@ class Availability(AvailabilityInDBBase):
 
 class DoctorWithAvailability(Doctor):
     availabilities: List[Availability] = []
-
