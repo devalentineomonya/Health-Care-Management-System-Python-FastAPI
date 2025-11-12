@@ -37,7 +37,7 @@ class AppointmentInDBBase(AppointmentBase):
     updated_at: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Properties to return to client
 class Appointment(AppointmentInDBBase):
@@ -52,4 +52,3 @@ class AppointmentDetail(Appointment):
     patient_name: str
     doctor_name: str
     doctor_specialization: str
-
